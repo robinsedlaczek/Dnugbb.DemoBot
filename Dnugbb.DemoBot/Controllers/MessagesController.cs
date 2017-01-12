@@ -120,8 +120,28 @@ namespace Dnugbb.DemoBot
 
         private async Task ReplyWithEventDetailsAsync(Activity activity, ConnectorClient connector)
         {
+            var message = "Hier die Details zu unseren nächsten Events:" + Environment.NewLine + Environment.NewLine;
 
+            var reply = activity.CreateReply(message);
+            reply.Attachments = new List<Attachment>();
 
+            foreach (var nextEvent in EventProvider.Events)
+            {
+                var heroCard = new HeroCard()
+                {
+                    Title = nextEvent.Topic,
+                    Subtitle = "Referent: " + nextEvent.Speaker + " Ort: " + nextEvent.Address,
+                    Text = nextEvent.Abstract,
+                    Images = new List<CardImage>
+                    {
+                        new CardImage(nextEvent.SpeakerImage)
+                    }
+                };
+
+                reply.Attachments.Add(heroCard.ToAttachment());
+            }
+
+            await connector.Conversations.ReplyToActivityAsync(reply);
         }
 
         private async Task ReplyWithSomeImagesAsync(Activity activity, ConnectorClient connector)
