@@ -10,6 +10,7 @@ using Newtonsoft.Json;
 using System.Collections.Generic;
 using Dnugbb.DemoBot.Data;
 using Microsoft.Bot.Builder.Dialogs;
+using Dnugbb.DemoBot.Dialogs;
 
 namespace Dnugbb.DemoBot
 {
@@ -34,6 +35,8 @@ namespace Dnugbb.DemoBot
                     await ReplyWithEventDetailsAsync(activity, connector);
                 else if (activity.Text.ToLower().Contains("anmelden") || activity.Text.ToLower().Contains("melde mich an") || activity.Text.ToLower().Contains("anmeldung)"))
                     await RegisterUserForEventAsync(activity, connector);
+                else if (activity.Text.ToLower().Contains("registriere") || activity.Text.ToLower().Contains("registrieren"))
+                    await Conversation.SendAsync(activity, () => new StartEventRegistrationDialog());
                 else
                     await ReplyToAllUnknownMessagesAsync(activity, connector);
 
