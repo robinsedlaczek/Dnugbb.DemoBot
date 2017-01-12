@@ -9,6 +9,7 @@ using Microsoft.Bot.Connector;
 using Newtonsoft.Json;
 using System.Collections.Generic;
 using Dnugbb.DemoBot.Data;
+using Microsoft.Bot.Builder.Dialogs;
 
 namespace Dnugbb.DemoBot
 {
@@ -25,158 +26,161 @@ namespace Dnugbb.DemoBot
             {
                 ConnectorClient connector = new ConnectorClient(new Uri(activity.ServiceUrl));
 
-                await ReplyWithImageCardsAsync(activity, connector);
-                await ReplyWithReceiptCardAsync(activity, connector);
-                await ReplyWithAttachmentAsync(activity, connector);
+                if (activity.Text.ToLower().Contains("bilder"))
+                    await ReplyWithSomeImagesAsync(activity, connector);
+                else if (activity.Text.ToLower().Contains("events") || activity.Text.ToLower().Contains("treffen"))
+                    await ReplyWithEventListAsync(activity, connector);
+                else if (activity.Text.ToLower().Contains("eventdetails") || activity.Text.ToLower().Contains("abstracts") || activity.Text.ToLower().Contains("sprecher") || activity.Text.ToLower().Contains("referenten"))
+                    await ReplyWithEventDetailsAsync(activity, connector);
+                else if (activity.Text.ToLower().Contains("anmelden") || activity.Text.ToLower().Contains("melde mich an") || activity.Text.ToLower().Contains("anmeldung)"))
+                    await RegisterUserForEventAsync(activity, connector);
+                else
+                    await ReplyToAllUnknownMessagesAsync(activity, connector);
+
+
+
+                //await ReplyWithImageCardsAsync(activity, connector);
+                //await ReplyWithReceiptCardAsync(activity, connector);
             }
             else
             {
-                HandleSystemMessage(activity);
+                await HandleSystemMessageAsync(activity);
             }
 
             var response = Request.CreateResponse(HttpStatusCode.OK);
             return response;
         }
 
-        private static async Task ReplyWithImageCardsAsync(Activity activity, ConnectorClient connector)
+        private async Task ReplyToAllUnknownMessagesAsync(Activity activity, ConnectorClient connector)
         {
-            if (activity.Text.ToLower().Contains("bilder der dnugbb"))
+            var stateClient = activity.GetStateClient();
+            var userData = await stateClient.BotState.GetUserDataAsync(activity.ChannelId, activity.From.Id);
+
+            var isRegistering = userData.GetProperty<bool>("IsRegisteringToEvent");
+            var selectedEvent = userData.GetProperty<string>("SelectedEvent");
+
+            if (isRegistering && string.IsNullOrEmpty(selectedEvent))
             {
-                var imageUrls = ImageProvider.ImageUrls;
+                var eventOfInterest = EventProvider.Events.Where(e => e.Topic.ToLower().Contains(activity.Text.ToLower())).FirstOrDefault();
 
-                var images = new List<CardImage>()
-                    {
-                        new CardImage(ImageProvider.ImageUrls[0]),
-                        new CardImage(ImageProvider.ImageUrls[1]),
-                        new CardImage(ImageProvider.ImageUrls[2]),
-                    };
+                userData.SetProperty<string>("SelectedEvent", eventOfInterest.Topic);
+                await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData);
 
-                var buttons = new List<CardAction>()
-                    {
-                        new CardAction("openUrl", "Open Image 1", ImageProvider.ImageUrls[0], ImageProvider.ImageUrls[0]),
-                        new CardAction("openUrl", "Open Image 2", ImageProvider.ImageUrls[1], ImageProvider.ImageUrls[1]),
-                        new CardAction("openUrl", "Open Image 3", ImageProvider.ImageUrls[2], ImageProvider.ImageUrls[2]),
-                    };
-
-                var heroCard = new HeroCard("Unsere Events", "Bilder der DNUGBB", "Hier sind ein paar Bilder unserer .NET User Group Berlin für Dich.", images, buttons);
-
-                var thumbnailCard = new ThumbnailCard("Unsere Events", "Bilder der DNUGBB", "Hier sind ein paar Bilder unserer .NET User Group Berlin für Dich.", images, buttons);
-
-                var reply = activity.CreateReply("Eine Heldenkarte...");
-                reply.Attachments = new List<Attachment>();
-                reply.Attachments.Add(heroCard.ToAttachment());
-                reply.Attachments.Add(thumbnailCard.ToAttachment());
-
-                var userReply = await connector.Conversations.ReplyToActivityAsync(reply);
-            }
-        }
-
-        private static async Task ReplyWithReceiptCardAsync(Activity activity, ConnectorClient connector)
-        {
-            if (activity.Text.ToLower().Contains("rechnung"))
-            {
-                var buttons = new List<CardAction>()
-                    {
-                        new CardAction("openUrl", "Open Image 1", ImageProvider.ImageUrls[0], ImageProvider.ImageUrls[0]),
-                    };
-
-                var lineItem1 = new ReceiptItem()
-                {
-                    Title = "Pork Shoulder",
-                    Subtitle = "8 lbs",
-                    Text = null,
-                    Image = new CardImage(ImageProvider.ImageUrls[0]),
-                    Price = "16.25",
-                    Quantity = "1",
-                    Tap = null
-                };
-
-                var lineItem2 = new ReceiptItem()
-                {
-                    Title = "Bacon",
-                    Subtitle = "5 lbs",
-                    Text = null,
-                    Image = new CardImage(ImageProvider.ImageUrls[1]),
-                    Price = "34.50",
-                    Quantity = "2",
-                    Tap = null
-                };
-
-                var receiptList = new List<ReceiptItem>()
-                    {
-                        lineItem1,
-                        lineItem2
-                    };
-
-                var receiptCard = new ReceiptCard()
-                {
-                    Title = "I'm a receipt card, isn't this bacon expensive?",
-                    Buttons = buttons,
-                    Items = receiptList,
-                    Total = "275.25",
-                    Tax = "27.52"
-                };
-
-                var reply = activity.CreateReply("Eine Heldenkarte...");
-                reply.Attachments = new List<Attachment>();
-                reply.Attachments.Add(receiptCard.ToAttachment());
-
-                var userReply = await connector.Conversations.ReplyToActivityAsync(reply);
-            }
-        }
-
-        private static async Task ReplyWithAttachmentAsync(Activity activity, ConnectorClient connector)
-        {
-            if (activity.Text == "Du")
-            {
-                var reply = activity.CreateReply("Arsch!");
-
-                var attachment = new Attachment()
-                {
-                    ContentUrl = "https://upload.wikimedia.org/wikipedia/en/a/a6/Bender_Rodriguez.png",
-                    ContentType = "image/png",
-                    Name = "Bender_Rodriguez.png"
-                };
-
-                reply.Attachments = new List<Attachment>();
-                reply.Attachments.Add(attachment);
+                var message = $"Ok, melde Dich zum Event '{eventOfInterest.Topic}' am {eventOfInterest.Date.ToString("dd.MM.yyyy")} an.{Environment.NewLine}{Environment.NewLine}Wieviele Plätze soll ich reservieren?";
+                var reply = activity.CreateReply(message);
 
                 await connector.Conversations.ReplyToActivityAsync(reply);
             }
-            else if (activity.Text == "Sei lieb!")
+            else if (isRegistering && !string.IsNullOrEmpty(selectedEvent))
             {
-                var reply = activity.CreateReply("Na gut...");
+                var eventOfInterest = EventProvider.Events.Where(e => e.Topic.ToLower().Contains(selectedEvent.ToLower())).FirstOrDefault();
+                var seats = int.Parse(activity.Text);
+
+                await stateClient.BotState.DeleteStateForUserAsync(activity.ChannelId, activity.From.Id);
+
+                var message = $"Ok, melde Dich zum Event '{eventOfInterest.Topic}' am {eventOfInterest.Date.ToString("dd.MM.yyyy")} an, und reserviere Dir {seats} Plätze.";
+                var reply = activity.CreateReply(message);
+                await connector.Conversations.ReplyToActivityAsync(reply);
+            }
+            else
+            {
+                var message = "Diese Aussage verstehe ich leider nicht.";
+                var reply = activity.CreateReply(message);
                 await connector.Conversations.ReplyToActivityAsync(reply);
             }
         }
 
-        private Activity HandleSystemMessage(Activity message)
+        private async Task RegisterUserForEventAsync(Activity activity, ConnectorClient connector)
         {
-            if (message.Type == ActivityTypes.DeleteUserData)
+            var message = "Zu welchem Event darf ich Dich anmelden?";
+
+            var reply = activity.CreateReply(message);
+
+            var response = await connector.Conversations.ReplyToActivityAsync(reply);
+
+            var stateClient = activity.GetStateClient();
+            var userData = await stateClient.BotState.GetUserDataAsync(activity.ChannelId, activity.From.Id);
+            userData.SetProperty<bool>("IsRegisteringToEvent", true);
+            await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData);
+        }
+
+        private async Task ReplyWithEventListAsync(Activity activity, ConnectorClient connector)
+        {
+            var message = "Das sind unserer nächsten Events:" + Environment.NewLine + Environment.NewLine;
+
+            foreach (var nextEvent in EventProvider.Events)
+            {
+                message += nextEvent.Date.ToString("dd.MM.yyyy") + " - " + nextEvent.Topic + Environment.NewLine + Environment.NewLine;
+            }
+
+            var reply = activity.CreateReply(message);
+
+            await connector.Conversations.ReplyToActivityAsync(reply);
+        }
+
+        private async Task ReplyWithEventDetailsAsync(Activity activity, ConnectorClient connector)
+        {
+
+
+        }
+
+        private async Task ReplyWithSomeImagesAsync(Activity activity, ConnectorClient connector)
+        {
+            var reply = activity.CreateReply("Hier sind ein paar Bilder der letzten Treffen:");
+
+            reply.Attachments = new List<Attachment>
+            {
+                new Attachment("image/png", ImageProvider.ImageUrls[1]),
+                new Attachment("image/png", ImageProvider.ImageUrls[2]),
+                new Attachment("image/png", ImageProvider.ImageUrls[3]),
+                new Attachment("image/png", ImageProvider.ImageUrls[4]),
+            };
+
+            await connector.Conversations.ReplyToActivityAsync(reply);
+        }
+
+        private async Task<Activity> HandleSystemMessageAsync(Activity activity)
+        {
+            if (activity.Type == ActivityTypes.DeleteUserData)
             {
                 // Implement user deletion here
                 // If we handle user deletion, return a real message
             }
-            else if (message.Type == ActivityTypes.ConversationUpdate)
+            else if (activity.Type == ActivityTypes.ConversationUpdate)
             {
+                if (activity.MembersAdded.First().Name == "Bot")
+                    return null;
+
+                var message = $@"
+Hi {activity.MembersAdded.First().Name}!{Environment.NewLine}
+
+Ich bin der Bot der .NET User Group Berlin-Brandenburg. Was kann ich für Dich tun?{Environment.NewLine}
+
+Ich könnte Dir z.B. Bilder der letzten Treffen oder die nächsten Events zeigen. Gerne erledige ich auch Deine Anmeldung bei einem unserer bevorstehenden Events.";
+
+                var reply = activity.CreateReply(message);
+                var connector = new ConnectorClient(new Uri(activity.ServiceUrl));
+                await connector.Conversations.SendToConversationAsync(reply);
+                
                 // Handle conversation state changes, like members being added and removed
                 // Use Activity.MembersAdded and Activity.MembersRemoved and Activity.Action for info
                 // Not available in all channels
             }
-            else if (message.Type == ActivityTypes.ContactRelationUpdate)
+            else if (activity.Type == ActivityTypes.ContactRelationUpdate)
             {
                 // Handle add/remove from contact lists
                 // Activity.From + Activity.Action represent what happened
             }
-            else if (message.Type == ActivityTypes.Typing)
+            else if (activity.Type == ActivityTypes.Typing)
             {
                 // Handle knowing tha the user is typing
             }
-            else if (message.Type == ActivityTypes.Ping)
+            else if (activity.Type == ActivityTypes.Ping)
             {
             }
 
             return null;
         }
+
     }
 }
