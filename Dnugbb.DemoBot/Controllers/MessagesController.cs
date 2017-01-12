@@ -8,6 +8,7 @@ using System.Web.Http.Description;
 using Microsoft.Bot.Connector;
 using Newtonsoft.Json;
 using System.Collections.Generic;
+using Dnugbb.DemoBot.Data;
 
 namespace Dnugbb.DemoBot
 {
@@ -24,9 +25,9 @@ namespace Dnugbb.DemoBot
             {
                 ConnectorClient connector = new ConnectorClient(new Uri(activity.ServiceUrl));
 
-                await ReplyWithImageCards(activity, connector);
-                await ReplyWithReceiptCard(activity, connector);
-                await ReplyWithAttachment(activity, connector);
+                await ReplyWithImageCardsAsync(activity, connector);
+                await ReplyWithReceiptCardAsync(activity, connector);
+                await ReplyWithAttachmentAsync(activity, connector);
             }
             else
             {
@@ -37,24 +38,24 @@ namespace Dnugbb.DemoBot
             return response;
         }
 
-        private static async Task ReplyWithImageCards(Activity activity, ConnectorClient connector)
+        private static async Task ReplyWithImageCardsAsync(Activity activity, ConnectorClient connector)
         {
             if (activity.Text.ToLower().Contains("bilder der dnugbb"))
             {
-                var imageUrls = ImageProvider.GetImageUrls();
+                var imageUrls = ImageProvider.ImageUrls;
 
                 var images = new List<CardImage>()
                     {
-                        new CardImage(imageUrls[0]),
-                        new CardImage(imageUrls[1]),
-                        new CardImage(imageUrls[2]),
+                        new CardImage(ImageProvider.ImageUrls[0]),
+                        new CardImage(ImageProvider.ImageUrls[1]),
+                        new CardImage(ImageProvider.ImageUrls[2]),
                     };
 
                 var buttons = new List<CardAction>()
                     {
-                        new CardAction("openUrl", "Open Image 1", imageUrls[0], imageUrls[0]),
-                        new CardAction("openUrl", "Open Image 2", imageUrls[1], imageUrls[1]),
-                        new CardAction("openUrl", "Open Image 3", imageUrls[2], imageUrls[2]),
+                        new CardAction("openUrl", "Open Image 1", ImageProvider.ImageUrls[0], ImageProvider.ImageUrls[0]),
+                        new CardAction("openUrl", "Open Image 2", ImageProvider.ImageUrls[1], ImageProvider.ImageUrls[1]),
+                        new CardAction("openUrl", "Open Image 3", ImageProvider.ImageUrls[2], ImageProvider.ImageUrls[2]),
                     };
 
                 var heroCard = new HeroCard("Unsere Events", "Bilder der DNUGBB", "Hier sind ein paar Bilder unserer .NET User Group Berlin für Dich.", images, buttons);
@@ -70,15 +71,13 @@ namespace Dnugbb.DemoBot
             }
         }
 
-        private static async Task ReplyWithReceiptCard(Activity activity, ConnectorClient connector)
+        private static async Task ReplyWithReceiptCardAsync(Activity activity, ConnectorClient connector)
         {
             if (activity.Text.ToLower().Contains("rechnung"))
             {
-                var imageUrls = ImageProvider.GetImageUrls();
-
                 var buttons = new List<CardAction>()
                     {
-                        new CardAction("openUrl", "Open Image 1", imageUrls[0], imageUrls[0]),
+                        new CardAction("openUrl", "Open Image 1", ImageProvider.ImageUrls[0], ImageProvider.ImageUrls[0]),
                     };
 
                 var lineItem1 = new ReceiptItem()
@@ -86,7 +85,7 @@ namespace Dnugbb.DemoBot
                     Title = "Pork Shoulder",
                     Subtitle = "8 lbs",
                     Text = null,
-                    Image = new CardImage(imageUrls[0]),
+                    Image = new CardImage(ImageProvider.ImageUrls[0]),
                     Price = "16.25",
                     Quantity = "1",
                     Tap = null
@@ -97,7 +96,7 @@ namespace Dnugbb.DemoBot
                     Title = "Bacon",
                     Subtitle = "5 lbs",
                     Text = null,
-                    Image = new CardImage(imageUrls[1]),
+                    Image = new CardImage(ImageProvider.ImageUrls[1]),
                     Price = "34.50",
                     Quantity = "2",
                     Tap = null
@@ -126,7 +125,7 @@ namespace Dnugbb.DemoBot
             }
         }
 
-        private static async Task ReplyWithAttachment(Activity activity, ConnectorClient connector)
+        private static async Task ReplyWithAttachmentAsync(Activity activity, ConnectorClient connector)
         {
             if (activity.Text == "Du")
             {
