@@ -39,11 +39,6 @@ namespace Dnugbb.DemoBot
                     await Conversation.SendAsync(activity, () => new StartEventRegistrationDialog());
                 else
                     await ReplyToAllUnknownMessagesAsync(activity, connector);
-
-
-
-                //await ReplyWithImageCardsAsync(activity, connector);
-                //await ReplyWithReceiptCardAsync(activity, connector);
             }
             else
             {
