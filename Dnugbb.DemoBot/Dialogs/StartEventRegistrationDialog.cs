@@ -9,6 +9,7 @@ using Dnugbb.DemoBot.Data;
 
 namespace Dnugbb.DemoBot.Dialogs
 {
+    [Serializable]
     public class StartEventRegistrationDialog : IDialog<string>
     {
         protected bool _isRegisteringToEvent = false;
@@ -23,7 +24,7 @@ namespace Dnugbb.DemoBot.Dialogs
         {
             _isRegisteringToEvent = true;
 
-            var prompt = "Zu welchem Event darf ich Dich anmelden?";
+            var prompt = "Für welches Event darf ich Dich anmelden?";
             var retryPrompt = "Das Event konnte nicht gefunden werden. Versuche ein anderes.";
 
             PromptDialog.Text(context, AfterEventSelectedAsync, prompt, retryPrompt);

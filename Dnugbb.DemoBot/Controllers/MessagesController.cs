@@ -11,12 +11,19 @@ using System.Collections.Generic;
 using Dnugbb.DemoBot.Data;
 using Microsoft.Bot.Builder.Dialogs;
 using Dnugbb.DemoBot.Dialogs;
+using System.Text.RegularExpressions;
+using Microsoft.Bot.Builder.FormFlow;
 
 namespace Dnugbb.DemoBot
 {
     [BotAuthentication]
     public class MessagesController : ApiController
     {
+        internal static IDialog<EventRegistration> MakeRootDialog()
+        {
+            return Chain.From(() => FormDialog.FromForm(EventRegistration.BuildForm));
+        }
+
         /// <summary>
         /// POST: api/Messages
         /// Receive a message from a user and reply to it
@@ -27,6 +34,8 @@ namespace Dnugbb.DemoBot
             {
                 ConnectorClient connector = new ConnectorClient(new Uri(activity.ServiceUrl));
 
+                /////////////////////////////////////////////////////////////////////////////////////////////
+                // Demo
                 if (activity.Text.ToLower().Contains("bilder"))
                     await ReplyWithSomeImagesAsync(activity, connector);
                 else if (activity.Text.ToLower().Contains("events") || activity.Text.ToLower().Contains("treffen"))
@@ -40,10 +49,9 @@ namespace Dnugbb.DemoBot
                 else
                     await ReplyToAllUnknownMessagesAsync(activity, connector);
 
-
-
-                //await ReplyWithImageCardsAsync(activity, connector);
-                //await ReplyWithReceiptCardAsync(activity, connector);
+                /////////////////////////////////////////////////////////////////////////////////////////////
+                // FormFlow
+                //await Conversation.SendAsync(activity, MakeRootDialog);
             }
             else
             {
