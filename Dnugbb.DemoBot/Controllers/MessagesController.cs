@@ -34,6 +34,9 @@ namespace Dnugbb.DemoBot
             {
                 ConnectorClient connector = new ConnectorClient(new Uri(activity.ServiceUrl));
 
+                var reply = activity.CreateReply(activity.ServiceUrl);
+                await connector.Conversations.SendToConversationAsync(reply);
+
                 /////////////////////////////////////////////////////////////////////////////////////////////
                 // Demo
                 if (activity.Text.ToLower().Contains("bilder"))
