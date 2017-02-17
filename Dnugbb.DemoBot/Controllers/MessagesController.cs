@@ -29,7 +29,7 @@ namespace Dnugbb.DemoBot
                     await ReplyWithSomeImagesAsync(activity, connector);
                 else if (activity.Text.ToLower().Contains("events") || activity.Text.ToLower().Contains("treffen"))
                     await ReplyWithEventListAsync(activity, connector);
-                else if (activity.Text.ToLower().Contains("eventdetails") || activity.Text.ToLower().Contains("abstracts") || activity.Text.ToLower().Contains("sprecher") || activity.Text.ToLower().Contains("referenten"))
+                else if (activity.Text.ToLower().Contains("treffen") || activity.Text.ToLower().Contains("meetup") || activity.Text.ToLower().Contains("event"))
                     await ReplyWithEventDetailsAsync(activity, connector);
                 else if (activity.Text.ToLower().Contains("anmelden") || activity.Text.ToLower().Contains("melde mich an") || activity.Text.ToLower().Contains("anmeldung)"))
                     await RegisterUserForEventAsync(activity, connector);
@@ -131,6 +131,11 @@ namespace Dnugbb.DemoBot
                     Images = new List<CardImage>
                     {
                         new CardImage(nextEvent.SpeakerImage)
+                    },
+                    Buttons = new List<CardAction>
+                    {
+                        new CardAction(type: ActionTypes.OpenUrl, title: "Jetzt anmelden", value: nextEvent.EventUrl),
+                        new CardAction(type: ActionTypes.OpenUrl, title: "Speaker kontaktieren", value: nextEvent.EventUrl)
                     }
                 };
 
@@ -148,7 +153,7 @@ namespace Dnugbb.DemoBot
             {
                 new Attachment("image/png", ImageProvider.ImageUrls[1]),
                 new Attachment("image/png", ImageProvider.ImageUrls[2]),
-                new Attachment("image/png", ImageProvider.ImageUrls[3]),
+                //new Attachment("image/png", ImageProvider.ImageUrls[3]),
                 new Attachment("image/png", ImageProvider.ImageUrls[4]),
             };
 
@@ -164,6 +169,9 @@ namespace Dnugbb.DemoBot
             }
             else if (activity.Type == ActivityTypes.ConversationUpdate)
             {
+                if (activity.MembersAdded.Count() == 0)
+                    return null;
+
                 if (activity.MembersAdded.First().Name == "Bot")
                     return null;
 
