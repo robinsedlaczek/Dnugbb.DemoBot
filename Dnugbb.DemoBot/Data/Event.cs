@@ -2,6 +2,7 @@
 
 namespace Dnugbb.DemoBot.Data
 {
+    [Serializable]
     public class Event
     {
         public DateTime Date { get; set; }

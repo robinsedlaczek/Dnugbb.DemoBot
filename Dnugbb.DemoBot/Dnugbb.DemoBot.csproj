@@ -111,6 +111,7 @@
     <Compile Include="Data\Event.cs" />
     <Compile Include="Data\EventProvider.cs" />
     <Compile Include="Data\EventRegistration.cs" />
+    <Compile Include="Dialogs\NumberOfSeatsDialog.cs" />
     <Compile Include="Dialogs\StartEventRegistrationDialog.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
