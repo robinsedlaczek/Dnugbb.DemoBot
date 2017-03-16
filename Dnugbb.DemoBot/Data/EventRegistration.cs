@@ -1,31 +1,24 @@
-﻿using Microsoft.Bot.Builder.FormFlow;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 
 namespace Dnugbb.DemoBot.Data
 {
-    public enum TicketType
-    {
-        OneDay,
-        TwoDay
-    }
+public class EventRegistration
+{
+    public string Event { get; set; }
 
-    [Serializable]
-    public class EventRegistration
-    {
-        public string Event { get; set; }
+    public int NumberOfSeats { get; set; }
 
-        public int Seats { get; set; }
+    public string FullName { get; set; }
 
-        public TicketType? TicketType{ get; set; }
+    public string Email { get; set; }
 
-        public static IForm<EventRegistration> BuildForm()
-        {
-            return new FormBuilder<EventRegistration>()
-                    .Message("Willkommen bei der .NET User Group Berlin-Brandenburg Event-Anmeldung!")
-                    .Build();
-        }
-    }
+    public string Street { get; set; }
+
+    public int PostalCode { get; set; }
+
+    public string City { get; set; }
+}
 }

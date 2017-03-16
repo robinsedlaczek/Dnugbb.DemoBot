@@ -17,6 +17,6 @@ namespace Dnugbb.DemoBot.Data
 
         public string SpeakerImage { get; internal set; }
 
-        public Uri EventUrl { get; internal set; }
+        public string EventUrl { get; internal set; }
     }
 }
