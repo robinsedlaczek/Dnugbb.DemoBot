@@ -19,11 +19,6 @@ namespace Dnugbb.DemoBot
     [BotAuthentication]
     public class MessagesController : ApiController
     {
-        internal static IDialog<EventRegistration> MakeRootDialog()
-        {
-            return Chain.From(() => FormDialog.FromForm(EventRegistration.BuildForm));
-        }
-
         /// <summary>
         /// POST: api/Messages
         /// Receive a message from a user and reply to it
@@ -32,25 +27,33 @@ namespace Dnugbb.DemoBot
         {
             if (activity.Type == ActivityTypes.Message)
             {
+                /////////////////////////////////////////////////////////////////////////////////////////////
+                // Demo of Bot Framework Capabilities
+
                 ConnectorClient connector = new ConnectorClient(new Uri(activity.ServiceUrl));
 
-                /////////////////////////////////////////////////////////////////////////////////////////////
-                // Demo
                 if (activity.Text.ToLower().Contains("bilder"))
                     await ReplyWithSomeImagesAsync(activity, connector);
-                else if (activity.Text.ToLower().Contains("events") || activity.Text.ToLower().Contains("treffen"))
+                else if (activity.Text.ToLower().Contains("events") ||
+                         activity.Text.ToLower().Contains("treffen"))
                     await ReplyWithEventListAsync(activity, connector);
-                else if (activity.Text.ToLower().Contains("treffen") || activity.Text.ToLower().Contains("meetup") || activity.Text.ToLower().Contains("event"))
+                else if (activity.Text.ToLower().Contains("details") ||
+                         activity.Text.ToLower().Contains("inhalt") ||
+                         activity.Text.ToLower().Contains("inhalte"))
                     await ReplyWithEventDetailsAsync(activity, connector);
-                else if (activity.Text.ToLower().Contains("anmelden") || activity.Text.ToLower().Contains("melde mich an") || activity.Text.ToLower().Contains("anmeldung)"))
+                else if (activity.Text.ToLower().Contains("registriere") ||
+                         activity.Text.ToLower().Contains("registrieren"))
                     await RegisterUserForEventAsync(activity, connector);
-                else if (activity.Text.ToLower().Contains("registriere") || activity.Text.ToLower().Contains("registrieren"))
+                else if (activity.Text.ToLower().Contains("anmelden") ||
+                         activity.Text.ToLower().Contains("anmeldung)"))
                     await Conversation.SendAsync(activity, () => new StartEventRegistrationDialog());
                 else
                     await ReplyToAllUnknownMessagesAsync(activity, connector);
 
                 /////////////////////////////////////////////////////////////////////////////////////////////
-                // FormFlow
+                // Demo of FormFlow 
+                // Uncomment the code above before using this FormFlow demo!
+
                 //await Conversation.SendAsync(activity, MakeRootDialog);
             }
             else
@@ -58,8 +61,26 @@ namespace Dnugbb.DemoBot
                 await HandleSystemMessageAsync(activity);
             }
 
-            var response = Request.CreateResponse(HttpStatusCode.OK);
-            return response;
+            return Request.CreateResponse(HttpStatusCode.OK);
+        }
+
+        internal static IDialog<EventRegistration> MakeRootDialog()
+        {
+            return Chain.From(() => FormDialog.FromForm(BuildEventRegistrationForm));
+        }
+
+        private static IForm<EventRegistration> BuildEventRegistrationForm()
+        {
+            return new FormBuilder<EventRegistration>()
+                .Message("Gerne helfe ich bei der Anmeldung zu unseren Treffen. Ich benötige nur ein paar Information von Dir.")
+                .OnCompletion(OnEventRegistrationCompleted)
+                .Build();
+        }
+
+        private async static Task OnEventRegistrationCompleted(IDialogContext context, EventRegistration state)
+        {
+            // SaveRegistrationToDatabase(state);
+            // SendEmailConfirmation(state.Email);
         }
 
         private async Task ReplyToAllUnknownMessagesAsync(Activity activity, ConnectorClient connector)
@@ -168,7 +189,6 @@ namespace Dnugbb.DemoBot
             {
                 new Attachment("image/png", ImageProvider.ImageUrls[1]),
                 new Attachment("image/png", ImageProvider.ImageUrls[2]),
-                //new Attachment("image/png", ImageProvider.ImageUrls[3]),
                 new Attachment("image/png", ImageProvider.ImageUrls[4]),
             };
 

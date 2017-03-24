@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Bot.Connector;
 using Dnugbb.DemoBot.Data;
+using System;
 
 namespace Dnugbb.DemoBot.Dialogs
 {

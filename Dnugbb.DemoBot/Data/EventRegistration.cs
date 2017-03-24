@@ -1,24 +1,28 @@
-﻿using System;
+﻿using Microsoft.Bot.Builder.FormFlow;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 
 namespace Dnugbb.DemoBot.Data
 {
-public class EventRegistration
-{
-    public string Event { get; set; }
+    public enum TicketType
+    {
+        Standard = 1,
+        CommunitySupporter
+    }
 
-    public int NumberOfSeats { get; set; }
+    [Serializable]
+    public class EventRegistration
+    {
+        public string Event { get; set; }
 
-    public string FullName { get; set; }
+        public int NumberOfSeats { get; set; }
 
-    public string Email { get; set; }
+        public TicketType TicketType { get; set; }
 
-    public string Street { get; set; }
+        public string FullName { get; set; }
 
-    public int PostalCode { get; set; }
-
-    public string City { get; set; }
-}
+        public string Email { get; set; }
+    }
 }
