@@ -4,14 +4,11 @@ using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Web.Http;
-using System.Web.Http.Description;
 using Microsoft.Bot.Connector;
-using Newtonsoft.Json;
 using System.Collections.Generic;
 using Dnugbb.DemoBot.Data;
 using Microsoft.Bot.Builder.Dialogs;
 using Dnugbb.DemoBot.Dialogs;
-using System.Text.RegularExpressions;
 using Microsoft.Bot.Builder.FormFlow;
 
 namespace Dnugbb.DemoBot
@@ -38,19 +35,19 @@ namespace Dnugbb.DemoBot
                 // Demo
                 if (activity.Text.ToLower().Contains("bilder"))
                     await ReplyWithSomeImagesAsync(activity, connector);
-                else if (activity.Text.ToLower().Contains("events") || activity.Text.ToLower().Contains("treffen"))
+                else if (activity.Text.ToLower().Contains("events"))
                     await ReplyWithEventListAsync(activity, connector);
-                else if (activity.Text.ToLower().Contains("treffen") || activity.Text.ToLower().Contains("meetup") || activity.Text.ToLower().Contains("event"))
+                else if (activity.Text.ToLower().Contains("treffen"))
                     await ReplyWithEventDetailsAsync(activity, connector);
-                else if (activity.Text.ToLower().Contains("anmelden") || activity.Text.ToLower().Contains("melde mich an") || activity.Text.ToLower().Contains("anmeldung)"))
+                else if (activity.Text.ToLower().Contains("anmelden"))
                     await RegisterUserForEventAsync(activity, connector);
-                else if (activity.Text.ToLower().Contains("registriere") || activity.Text.ToLower().Contains("registrieren"))
+                else if (activity.Text.ToLower().Contains("registriere"))
                     await Conversation.SendAsync(activity, () => new StartEventRegistrationDialog());
                 else
                     await ReplyToAllUnknownMessagesAsync(activity, connector);
 
                 /////////////////////////////////////////////////////////////////////////////////////////////
-                // FormFlow
+                // FormFlow Example (comment out the code for the demo above before using this)
                 //await Conversation.SendAsync(activity, MakeRootDialog);
             }
             else
@@ -125,7 +122,7 @@ namespace Dnugbb.DemoBot
             }
 
             var reply = activity.CreateReply(message);
-
+            
             await connector.Conversations.ReplyToActivityAsync(reply);
         }
 
@@ -168,7 +165,6 @@ namespace Dnugbb.DemoBot
             {
                 new Attachment("image/png", ImageProvider.ImageUrls[1]),
                 new Attachment("image/png", ImageProvider.ImageUrls[2]),
-                //new Attachment("image/png", ImageProvider.ImageUrls[3]),
                 new Attachment("image/png", ImageProvider.ImageUrls[4]),
             };
 
@@ -200,10 +196,6 @@ Ich könnte Dir z.B. Bilder der letzten Treffen oder die nächsten Events zeigen
                 var reply = activity.CreateReply(message);
                 var connector = new ConnectorClient(new Uri(activity.ServiceUrl));
                 await connector.Conversations.SendToConversationAsync(reply);
-                
-                // Handle conversation state changes, like members being added and removed
-                // Use Activity.MembersAdded and Activity.MembersRemoved and Activity.Action for info
-                // Not available in all channels
             }
             else if (activity.Type == ActivityTypes.ContactRelationUpdate)
             {
@@ -220,6 +212,5 @@ Ich könnte Dir z.B. Bilder der letzten Treffen oder die nächsten Events zeigen
 
             return null;
         }
-
     }
 }
