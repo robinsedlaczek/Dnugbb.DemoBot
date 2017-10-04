@@ -13,6 +13,7 @@ using Microsoft.Bot.Builder.Dialogs;
 using Dnugbb.DemoBot.Dialogs;
 using System.Text.RegularExpressions;
 using Microsoft.Bot.Builder.FormFlow;
+using iCalNET.Model;
 
 namespace Dnugbb.DemoBot
 {
@@ -30,25 +31,41 @@ namespace Dnugbb.DemoBot
                 /////////////////////////////////////////////////////////////////////////////////////////////
                 // Demo of Bot Framework Capabilities
 
-                ConnectorClient connector = new ConnectorClient(new Uri(activity.ServiceUrl));
+                try
+                {
+                    ConnectorClient connector = new ConnectorClient(new Uri(activity.ServiceUrl));
 
-                if (activity.Text.ToLower().Contains("bilder"))
-                    await ReplyWithSomeImagesAsync(activity, connector);
-                else if (activity.Text.ToLower().Contains("events") ||
-                         activity.Text.ToLower().Contains("treffen"))
-                    await ReplyWithEventListAsync(activity, connector);
-                else if (activity.Text.ToLower().Contains("details") ||
-                         activity.Text.ToLower().Contains("inhalt") ||
-                         activity.Text.ToLower().Contains("inhalte"))
-                    await ReplyWithEventDetailsAsync(activity, connector);
-                else if (activity.Text.ToLower().Contains("registriere") ||
-                         activity.Text.ToLower().Contains("registrieren"))
-                    await RegisterUserForEventAsync(activity, connector);
-                else if (activity.Text.ToLower().Contains("anmelden") ||
-                         activity.Text.ToLower().Contains("anmeldung)"))
-                    await Conversation.SendAsync(activity, () => new StartEventRegistrationDialog());
-                else
-                    await ReplyToAllUnknownMessagesAsync(activity, connector);
+                    if (string.IsNullOrEmpty(activity.Text))
+                    {
+                        var message = "Hi. Wie kann ich behilflich sein?";
+                        var reply = activity.CreateReply(message);
+                        await connector.Conversations.ReplyToActivityAsync(reply);
+                    }
+
+                    if (activity.Text.ToLower().Contains("bilder"))
+                        await ReplyWithSomeImagesAsync(activity, connector);
+                    else if (activity.Text.ToLower().Contains("events") ||
+                             activity.Text.ToLower().Contains("treffen"))
+                        await ReplyWithEventListAsync(activity, connector);
+                    else if (activity.Text.ToLower().Contains("details") ||
+                             activity.Text.ToLower().Contains("inhalt") ||
+                             activity.Text.ToLower().Contains("inhalte"))
+                        await ReplyWithEventDetailsAsync(activity, connector);
+                    else if (activity.Text.ToLower().Contains("registriere") ||
+                             activity.Text.ToLower().Contains("registrieren"))
+                        await RegisterUserForEventAsync(activity, connector);
+                    else if (activity.Text.ToLower().Contains("anmelden") ||
+                             activity.Text.ToLower().Contains("anmeldung)"))
+                        await Conversation.SendAsync(activity, () => new StartEventRegistrationDialog());
+                    else
+                        await ReplyToAllUnknownMessagesAsync(activity, connector);
+                }
+                catch (Exception exception)
+                {
+                    var connector = new ConnectorClient(new Uri(activity.ServiceUrl));
+                    var reply = activity.CreateReply($"Error occurred: {exception.ToString()}.");
+                    await connector.Conversations.ReplyToActivityAsync(reply);
+                }
 
                 /////////////////////////////////////////////////////////////////////////////////////////////
                 // Demo of FormFlow 
@@ -85,39 +102,47 @@ namespace Dnugbb.DemoBot
 
         private async Task ReplyToAllUnknownMessagesAsync(Activity activity, ConnectorClient connector)
         {
-            var stateClient = activity.GetStateClient();
-            var userData = await stateClient.BotState.GetUserDataAsync(activity.ChannelId, activity.From.Id);
-
-            var isRegistering = userData.GetProperty<bool>("IsRegisteringToEvent");
-            var selectedEvent = userData.GetProperty<string>("SelectedEvent");
-
-            if (isRegistering && string.IsNullOrEmpty(selectedEvent))
+            try
             {
-                var eventOfInterest = EventProvider.Events.Where(e => e.Topic.ToLower().Contains(activity.Text.ToLower())).FirstOrDefault();
+                var stateClient = activity.GetStateClient();
+                var userData = await stateClient.BotState.GetUserDataAsync(activity.ChannelId, activity.From.Id);
 
-                userData.SetProperty<string>("SelectedEvent", eventOfInterest.Topic);
-                await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData);
+                var isRegistering = userData.GetProperty<bool>("IsRegisteringToEvent");
+                var selectedEvent = userData.GetProperty<string>("SelectedEvent");
 
-                var message = $"Ok, melde Dich zum Event '{eventOfInterest.Topic}' am {eventOfInterest.Date.ToString("dd.MM.yyyy")} an.{Environment.NewLine}{Environment.NewLine}Wieviele Plätze soll ich reservieren?";
-                var reply = activity.CreateReply(message);
+                if (isRegistering && string.IsNullOrEmpty(selectedEvent))
+                {
+                    var eventOfInterest = EventProvider.Events.Where(e => e.Topic.ToLower().Contains(activity.Text.ToLower())).FirstOrDefault();
 
-                await connector.Conversations.ReplyToActivityAsync(reply);
+                    userData.SetProperty<string>("SelectedEvent", eventOfInterest.Topic);
+                    await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData);
+
+                    var message = $"Ok, melde Dich zum Event '{eventOfInterest.Topic}' am {eventOfInterest.Date.ToString("dd.MM.yyyy")} an.{Environment.NewLine}{Environment.NewLine}Wieviele Plätze soll ich reservieren?";
+                    var reply = activity.CreateReply(message);
+
+                    await connector.Conversations.ReplyToActivityAsync(reply);
+                }
+                else if (isRegistering && !string.IsNullOrEmpty(selectedEvent))
+                {
+                    var eventOfInterest = EventProvider.Events.Where(e => e.Topic.ToLower().Contains(selectedEvent.ToLower())).FirstOrDefault();
+                    var seats = int.Parse(activity.Text);
+
+                    await stateClient.BotState.DeleteStateForUserAsync(activity.ChannelId, activity.From.Id);
+
+                    var message = $"Ok, melde Dich zum Event '{eventOfInterest.Topic}' am {eventOfInterest.Date.ToString("dd.MM.yyyy")} an, und reserviere Dir {seats} Plätze.";
+                    var reply = activity.CreateReply(message);
+                    await connector.Conversations.ReplyToActivityAsync(reply);
+                }
+                else
+                {
+                    var message = "Diese Aussage verstehe ich leider nicht.";
+                    var reply = activity.CreateReply(message);
+                    await connector.Conversations.ReplyToActivityAsync(reply);
+                }
             }
-            else if (isRegistering && !string.IsNullOrEmpty(selectedEvent))
+            catch (Exception exception)
             {
-                var eventOfInterest = EventProvider.Events.Where(e => e.Topic.ToLower().Contains(selectedEvent.ToLower())).FirstOrDefault();
-                var seats = int.Parse(activity.Text);
-
-                await stateClient.BotState.DeleteStateForUserAsync(activity.ChannelId, activity.From.Id);
-
-                var message = $"Ok, melde Dich zum Event '{eventOfInterest.Topic}' am {eventOfInterest.Date.ToString("dd.MM.yyyy")} an, und reserviere Dir {seats} Plätze.";
-                var reply = activity.CreateReply(message);
-                await connector.Conversations.ReplyToActivityAsync(reply);
-            }
-            else
-            {
-                var message = "Diese Aussage verstehe ich leider nicht.";
-                var reply = activity.CreateReply(message);
+                var reply = activity.CreateReply($"Error occurred: {exception.ToString()}.");
                 await connector.Conversations.ReplyToActivityAsync(reply);
             }
         }
@@ -157,21 +182,34 @@ namespace Dnugbb.DemoBot
             var reply = activity.CreateReply(message);
             reply.Attachments = new List<Attachment>();
 
-            foreach (var nextEvent in EventProvider.Events)
+            var client = new HttpClient();
+            var iCal = await client.GetStringAsync("https://dnugbb.azurewebsites.net/events.ics");
+            var calendar = new vCalendar(iCal);
+            
+            foreach (var meetup in calendar.vEvents)
             {
+                DateTime start;
+                string startTime = string.Empty;
+
+                if (DateTime.TryParse(meetup.ContentLines.Where(line => line.Key.ToLower() == "dtstart").FirstOrDefault().Value.Value, out start))
+                    startTime = start.ToString("dd.MM.yyyy hh:mm");
+
                 var heroCard = new HeroCard()
                 {
-                    Title = nextEvent.Topic,
-                    Subtitle = "Referent: " + nextEvent.Speaker + " Ort: " + nextEvent.Address,
-                    Text = nextEvent.Abstract,
-                    Images = new List<CardImage>
-                    {
-                        new CardImage(nextEvent.SpeakerImage)
-                    },
+                    Title = meetup.ContentLines.Where(line => line.Key.ToLower() == "summary").FirstOrDefault().Value.Value,
+                    Subtitle = startTime
+                                + " | " 
+                                + meetup.ContentLines.Where(line => line.Key.ToLower() == "location").FirstOrDefault().Value.Value,
+                    Text = meetup.ContentLines.Where(line => line.Key.ToLower() == "description").FirstOrDefault().Value.Value,
+
+                    //Images = new List<CardImage>
+                    //{
+                    //    new CardImage(nextEvent.SpeakerImage)
+                    //},
+
                     Buttons = new List<CardAction>
                     {
-                        new CardAction(type: ActionTypes.OpenUrl, title: "Jetzt anmelden", value: nextEvent.EventUrl),
-                        new CardAction(type: ActionTypes.OpenUrl, title: "Speaker kontaktieren", value: nextEvent.EventUrl)
+                        new CardAction(type: ActionTypes.OpenUrl, title: "Jetzt anmelden", value: meetup.ContentLines.Where(line => line.Key.ToLower() == "url").FirstOrDefault().Value.Value)
                     }
                 };
 
